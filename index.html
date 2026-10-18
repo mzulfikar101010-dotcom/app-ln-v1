@@ -109,17 +109,6 @@ td:first-child{font-weight:500}
 .skel{height:76px;border-radius:14px;background:linear-gradient(90deg,var(--soft),var(--card),var(--soft));background-size:200% 100%;animation:sh 1.2s infinite}
 @keyframes sh{to{background-position:-200% 0}}
 
-/* Report */
-.seg{display:flex;background:var(--soft);border-radius:14px;padding:4px;gap:4px}
-.seg button{flex:1;height:40px;border-radius:11px;font-weight:600;color:var(--mute)}
-.seg button.on{background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
-.tools{display:flex;gap:8px;margin:12px 0}
-.tools select{flex:1;height:44px;border-radius:12px;border:1.5px solid var(--line);background:var(--card);padding:0 12px;min-width:0}
-.tools button{height:44px;padding:0 14px;border-radius:12px;background:var(--soft);font-weight:600;white-space:nowrap}
-.sum{display:flex;justify-content:space-between;align-items:flex-end;margin:4px 0 12px}
-.sum .v{font-size:30px;font-weight:700;letter-spacing:-.02em}
-.sum .l{color:var(--mute);font-size:13px}
-
 /* Sheet */
 #ov{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:20;display:none}
 #ov.on{display:block}
@@ -140,7 +129,12 @@ td:first-child{font-weight:500}
 .drop{display:block;border:2px dashed var(--line);border-radius:var(--r);padding:32px 16px;text-align:center;color:var(--mute);cursor:pointer;background:var(--card)}
 .drop b{display:block;color:var(--ink);font-size:16px;margin-bottom:4px}
 .drop input{display:none}
-.res{margin-top:12px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.drop.over{border-color:var(--brand);background:var(--soft);color:var(--ink)}
+.files{margin:10px 0 0;padding:0;list-style:none;font-size:13.5px;color:var(--mute)}
+.files li{display:flex;justify-content:space-between;gap:12px;padding:3px 0}
+.files span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+button.hero{width:100%;text-align:left;display:block}
+.res{margin-top:12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr));gap:8px}
 .res div{background:var(--soft);border-radius:12px;padding:10px;text-align:center}
 .res b{display:block;font-size:20px}.res span{font-size:12px;color:var(--mute)}
 .ok{color:var(--selesai)}
@@ -172,11 +166,11 @@ td:first-child{font-weight:500}
     <!-- Ringkasan -->
     <section class="page on" id="p-home">
       <div id="iosHint" class="hint hide"><span>Pasang di iPhone: ketuk <b>Bagikan</b> lalu <b>Tambah ke Layar Utama</b>.</span><button id="iosX" aria-label="Tutup">✕</button></div>
-      <div class="card hero"><div class="l">Komisi Anda</div><div class="v num" id="hKomisi">–</div><div class="s" id="hKomisiS"></div></div>
+      <button class="card hero" id="hHero" data-f="selesai"><div class="l">Paket selesai</div><div class="v num" id="hKomisi">–</div><div class="s" id="hKomisiS"></div></button>
       <div class="bar" id="hBar"></div>
       <div class="tiles" id="hTiles"></div>
       <h2>Per minggu</h2>
-      <div class="card" style="padding:14px 16px"><table><thead><tr><th>Dibuat</th><th>Pesanan</th><th>Selesai</th><th>Komisi</th></tr></thead><tbody id="hWeeks"></tbody></table></div>
+      <div class="card" style="padding:14px 16px"><table><thead><tr><th>Dibuat</th><th>Pesanan</th><th>Selesai</th></tr></thead><tbody id="hWeeks"></tbody></table></div>
       <div class="foot">
         <button id="btnInstall" class="hide">Pasang aplikasi</button>
         <span id="hSync"></span>
@@ -195,18 +189,9 @@ td:first-child{font-weight:500}
       <div id="oMore" style="height:1px"></div>
     </section>
 
-    <!-- Laporan -->
-    <section class="page" id="p-report">
-      <div class="seg" id="seg"><button data-v="selesai" class="on">Selesai</button><button data-v="retur">Retur</button></div>
-      <div class="tools"><select id="wk" aria-label="Minggu"></select><button id="btnCsv">Unduh CSV</button></div>
-      <div class="sum"><div><div class="l" id="rL"></div><div class="v num" id="rV"></div></div><div class="l num" id="rS"></div></div>
-      <div class="list" id="rList"></div>
-      <div id="rMore" style="height:1px"></div>
-    </section>
-
     <!-- Unggah (admin) -->
     <section class="page" id="p-upload">
-      <label class="drop" id="drop"><input type="file" id="file" accept=".xlsx,.xls,.csv"><b>Pilih file pesanan</b>Format .xlsx dari TikTok Shop</label>
+      <label class="drop" id="drop"><input type="file" id="file" accept=".xlsx,.xls,.csv" multiple><b>Tarik file ke sini</b>atau ketuk untuk memilih · .xlsx dari TikTok Shop</label>
       <div id="uInfo"></div>
       <h2>Riwayat unggah</h2>
       <div class="card" style="padding:6px 16px"><table><tbody id="uHist"><tr><td style="text-align:left;color:var(--mute)">Memuat…</td></tr></tbody></table></div>
@@ -247,7 +232,7 @@ function toast(t){ const e=document.createElement('div'); e.className='toast'; e
 
 /* ═════ Status ═════ */
 const ST = {
-  selesai:  { t:'Selesai',          c:'var(--selesai)',  d:'Komisi dihitung' },
+  selesai:  { t:'Selesai',          c:'var(--selesai)',  d:'Diterima pembeli' },
   terkirim: { t:'Terkirim',         c:'var(--terkirim)', d:'Sudah sampai, menunggu selesai' },
   transit:  { t:'Dalam perjalanan', c:'var(--transit)',  d:'Sedang dikirim' },
   diproses: { t:'Diproses',         c:'var(--diproses)', d:'Disiapkan penjual' },
@@ -285,7 +270,7 @@ async function api(body){
 }
 
 /* ═════ State ═════ */
-const S = { token:ls.get('tk')||'', role:ls.get('rl')||'', ver:'', orders:[], tab:'home', f:'all', q:'', rep:'selesai', wk:'all', n:{}, shown:60, rshown:60, sync:'' };
+const S = { token:ls.get('tk')||'', role:ls.get('rl')||'', ver:'', orders:[], tab:'home', f:'all', q:'', n:{}, shown:60, sync:'' };
 
 function build(cols, rows){
   const ix = {}; cols.forEach((c,i)=>ix[c]=i);
@@ -348,15 +333,14 @@ function skeleton(){ $('#oList').innerHTML = '<div class="skel"></div>'.repeat(5
 const IC = {
   home:'<path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-9z"/>',
   orders:'<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/>',
-  report:'<path d="M5 3h14v18H5z"/><path d="M9 8h6M9 12h6M9 16h3"/>',
   upload:'<path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 20h16"/>',
 };
 function buildTabs(){
-  const t=[['home','Ringkasan'],['orders','Pesanan'],['report','Laporan']]; if(S.role==='admin') t.push(['upload','Unggah']);
+  const t=[['home','Ringkasan'],['orders','Pesanan']]; if(S.role==='admin') t.push(['upload','Unggah']);
   $('#tabs').innerHTML = t.map(([k,l])=>`<button data-k="${k}"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${IC[k]}</svg>${l}</button>`).join('');
   $('#tabs').onclick = e => { const b=e.target.closest('button'); if(b) go(b.dataset.k); };
 }
-const TITLE = { home:'Ringkasan', orders:'Pesanan', report:'Laporan', upload:'Unggah file' };
+const TITLE = { home:'Ringkasan', orders:'Pesanan', upload:'Unggah file' };
 function go(k){
   S.tab=k; window.scrollTo(0,0);
   document.querySelectorAll('.page').forEach(p=>p.classList.toggle('on',p.id==='p-'+k));
@@ -367,20 +351,21 @@ function go(k){
 }
 function renderAll(){
   if(S.sync) $('#hSub').textContent = 'Diperbarui ' + new Date(S.sync).toLocaleString('id-ID',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
-  if(S.tab==='home') renderHome(); else if(S.tab==='orders') renderOrders(); else if(S.tab==='report') renderReport();
+  if(S.tab==='home') renderHome(); else if(S.tab==='orders') renderOrders();
 }
 
 /* ═════ Ringkasan ═════ */
 function renderHome(){
-  const K=C.KOMISI||1000, n=S.n, tot=S.orders.length;
-  $('#hKomisi').textContent = rp((n.selesai||0)*K);
-  $('#hKomisiS').textContent = nf(n.selesai||0)+' paket selesai × '+rp(K);
+  const n=S.n, tot=S.orders.length;
+  $('#hKomisi').textContent = nf(n.selesai||0);
+  $('#hKomisiS').textContent = 'dari '+nf(tot)+' pesanan';
   $('#hBar').innerHTML = tot ? ORDER.filter(k=>n[k]).map(k=>`<i style="flex:${n[k]};background:${ST[k].c}"></i>`).join('') : '';
-  const show = ORDER.filter(k=>k!=='unpaid'||n.unpaid);
+  const show = ORDER.filter(k=>k!=='selesai' && (k!=='unpaid'||n.unpaid));
   $('#hTiles').innerHTML = show.map(k=>`<button class="tile" data-f="${k}"><div class="t"><span class="dot" style="background:${ST[k].c}"></span>${ST[k].t}</div><div class="n num">${nf(n[k]||0)}</div><div class="d">${ST[k].d}</div></button>`).join('');
-  $('#hTiles').onclick = e => { const b=e.target.closest('.tile'); if(b){ S.f=b.dataset.f; S.shown=60; go('orders'); } };
+  const jump = e => { const b=e.target.closest('[data-f]'); if(b){ S.f=b.dataset.f; S.shown=60; go('orders'); } };
+  $('#hTiles').onclick = jump; $('#hHero').onclick = jump;
   const w={}; S.orders.forEach(o=>{ if(!o.wk) return; const x=w[o.wk]||(w[o.wk]={n:0,s:0}); x.n++; if(o.st==='selesai') x.s++; });
-  $('#hWeeks').innerHTML = Object.keys(w).sort().reverse().map(k=>`<tr><td>${weekLabel(k)}</td><td class="num">${nf(w[k].n)}</td><td class="num">${nf(w[k].s)}</td><td class="num">${rp(w[k].s*K)}</td></tr>`).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--mute)">Belum ada data</td></tr>';
+  $('#hWeeks').innerHTML = Object.keys(w).sort().reverse().map(k=>`<tr><td>${weekLabel(k)}</td><td class="num">${nf(w[k].n)}</td><td class="num">${nf(w[k].s)}</td></tr>`).join('') || '<tr><td colspan="3" style="text-align:center;color:var(--mute)">Belum ada data</td></tr>';
   $('#hSync').textContent = S.role==='admin' ? 'Masuk sebagai admin' : '';
 }
 
@@ -392,11 +377,9 @@ function matches(o){
   if(tk.length>1 && tk.every(t=>/^\d{5,}$/.test(t))) return tk.some(t=>o.id.includes(t));
   return o.hay.includes(q);
 }
-function rowHtml(o,rep){
+function rowHtml(o){
   const s=ST[o.st];
-  const m = rep==='selesai' ? `<span>Dibuat ${dShort(o.created)}</span><span>Sampai ${dShort(o.delivered)}</span>`
-          : rep==='retur'   ? `<span>Dibuat ${dShort(o.created)}</span><span>Sampai ${dShort(o.delivered)}</span>`
-          : `<span>Dibuat ${dShort(o.created)}</span>${o.st==='batal'?`<span>Batal ${dShort(o.cancelled)}</span>`:o.delivered?`<span>Sampai ${dShort(o.delivered)}</span>`:o.shipped?`<span>Dikirim ${dShort(o.shipped)}</span>`:''}`;
+  const m = `<span>Dibuat ${dShort(o.created)}</span>${o.st==='batal'?`<span>Batal ${dShort(o.cancelled)}</span>`:o.delivered?`<span>Sampai ${dShort(o.delivered)}</span>`:o.shipped?`<span>Dikirim ${dShort(o.shipped)}</span>`:''}`;
   return `<button class="row" data-id="${o.id}"><div class="a"><span class="id num">${o.id}</span><span class="badge" style="--c:${s.c}">${s.t}</span></div><div class="p">${esc(o.product)}${o.qty>1?' × '+esc(o.qty):''}</div><div class="m">${m}</div></button>`;
 }
 function renderOrders(){
@@ -411,14 +394,14 @@ function renderOrders(){
 $('#chips').onclick = e => { const b=e.target.closest('.chip'); if(b){ S.f=b.dataset.f; S.shown=60; renderOrders(); } };
 let qt; $('#q').oninput = e => { clearTimeout(qt); qt=setTimeout(()=>{ S.q=e.target.value; S.shown=60; renderOrders(); },180); };
 new IntersectionObserver(es=>{ if(es[0].isIntersecting && S.tab==='orders' && S._all && S.shown<S._all.length){ S.shown+=60; renderOrders(); } },{rootMargin:'400px'}).observe($('#oMore'));
-$('#oList').onclick = $('#rList').onclick = e => { const b=e.target.closest('.row'); if(b) openSheet(b.dataset.id); };
+$('#oList').onclick = e => { const b=e.target.closest('.row'); if(b) openSheet(b.dataset.id); };
 
 /* ═════ Detail ═════ */
 function openSheet(id){
   const o=S.orders.find(x=>x.id===id); if(!o) return; const s=ST[o.st];
   const steps=[['Dibuat',o.created],['Dibayar',o.paid],['Dikemas',o.rts],['Dikirim',o.shipped],['Sampai',o.delivered]].filter(x=>x[1]);
   let tl = steps.map(([k,v])=>`<li><div class="k">${k}</div><div class="w">${dLong(v)}</div></li>`).join('');
-  if(o.st==='selesai') tl+=`<li style="--c:var(--selesai)"><div class="k">Selesai</div><div class="w">Komisi ${rp(C.KOMISI||1000)}</div></li>`;
+  if(o.st==='selesai') tl+=`<li style="--c:var(--selesai)"><div class="k">Selesai</div><div class="w">Paket diterima pembeli</div></li>`;
   if(o.st==='retur')   tl+=`<li style="--c:var(--retur)"><div class="k">Retur</div><div class="w">Dikembalikan pembeli</div></li>`;
   if(o.st==='batal')   tl+=`<li style="--c:var(--batal)"><div class="k">Dibatalkan</div><div class="w">${dLong(o.cancelled)}${o.cancelBy?' · oleh '+(o.cancelBy==='User'?'pembeli':o.cancelBy==='System'?'sistem':esc(o.cancelBy)):''}</div></li>`;
   if(o.st==='unpaid')  tl+=`<li style="--c:var(--unpaid)"><div class="k">Menunggu pembayaran</div></li>`;
@@ -428,31 +411,6 @@ function openSheet(id){
 }
 function closeSheet(){ $('#sheet').classList.remove('on'); $('#ov').classList.remove('on'); }
 $('#ov').onclick = closeSheet; document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeSheet(); });
-
-/* ═════ Laporan ═════ */
-function renderReport(){
-  document.querySelectorAll('#seg button').forEach(b=>b.classList.toggle('on',b.dataset.v===S.rep));
-  const ws=[...new Set(S.orders.filter(o=>o.st===S.rep&&o.wk).map(o=>o.wk))].sort().reverse();
-  if(S.wk!=='all' && !ws.includes(S.wk)) S.wk='all';
-  $('#wk').innerHTML = '<option value="all">Semua minggu</option>'+ws.map(k=>`<option value="${k}"${S.wk===k?' selected':''}>Dibuat ${weekLabel(k)}</option>`).join('');
-  const all=S.orders.filter(o=>o.st===S.rep && (S.wk==='all'||o.wk===S.wk)).sort((a,b)=>(b.delivered||b.created).localeCompare(a.delivered||a.created));
-  const K=C.KOMISI||1000;
-  if(S.rep==='selesai'){ $('#rL').textContent='Komisi'; $('#rV').textContent=rp(all.length*K); $('#rS').textContent=nf(all.length)+' paket'; }
-  else { $('#rL').textContent='Paket retur'; $('#rV').textContent=nf(all.length); $('#rS').textContent=''; }
-  S._rep=all;
-  $('#rList').innerHTML = all.length ? all.slice(0,S.rshown).map(o=>rowHtml(o,S.rep)).join('') : '<div class="empty">'+(S.rep==='retur'?'Tidak ada retur 🎉':'Belum ada paket selesai.')+'</div>';
-}
-$('#seg').onclick = e => { const b=e.target.closest('button'); if(b){ S.rep=b.dataset.v; S.wk='all'; S.rshown=60; renderReport(); } };
-$('#wk').onchange = e => { S.wk=e.target.value; S.rshown=60; renderReport(); };
-new IntersectionObserver(es=>{ if(es[0].isIntersecting && S.tab==='report' && S._rep && S.rshown<S._rep.length){ S.rshown+=60; renderReport(); } },{rootMargin:'400px'}).observe($('#rMore'));
-$('#btnCsv').onclick = () => {
-  const rows=S._rep||[]; if(!rows.length) return toast('Tidak ada data');
-  const q=v=>'"'+String(v||'').replace(/"/g,'""')+'"', K=C.KOMISI||1000;
-  const head=['Order ID','Status','Dibuat','Dikirim','Sampai'].concat(S.rep==='selesai'?['Komisi']:[]);
-  const lines=rows.map(o=>['="'+o.id+'"',ST[o.st].t,o.created,o.shipped,o.delivered].map(q).concat(S.rep==='selesai'?[K]:[]).join(','));
-  const blob=new Blob(['\ufeff'+head.map(q).join(',')+'\n'+lines.join('\n')],{type:'text/csv;charset=utf-8'});
-  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='paket-'+S.rep+'-'+new Date().toISOString().slice(0,10)+'.csv'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),4000);
-};
 
 /* ═════ Unggah (admin) ═════ */
 const MAP = { status:'Order Status', substatus:'Order Substatus', ctype:'Cancelation/Return Type', created:'Created Time', paid:'Paid Time', rts:'RTS Time', shipped:'Shipped Time', delivered:'Delivered Time', cancelled:'Cancelled Time', cancelBy:'Cancel By', cancelReason:'Cancel Reason', product:'Product Name', qty:'Quantity', courier:'Shipping Provider Name', type:'Normal or Pre-order' };
@@ -484,30 +442,57 @@ function parseSheet(aoa){
   }
   return [...by.values()];
 }
+/* Versi terbaru = pesanan dengan tanggal kejadian paling baru (dibuat/dibayar/dikemas/dikirim/sampai/batal).
+   Jika tanggalnya sama, status yang lebih maju menang. Harus sama dengan aturan di Code.gs. */
+const RANK = { unpaid:0, diproses:1, transit:2, terkirim:3, selesai:4, batal:5, retur:6 };
+function stamp(r){ let m=''; for(let i=4;i<=9;i++) if(r[i]>m) m=r[i]; return m; }
+function rankRow(r){ return RANK[derive({status:r[1],substatus:r[2],ctype:r[3]})]; }
+function newer(a,b){ const sa=stamp(a), sb=stamp(b); if(sa!==sb) return sa>sb; return rankRow(a)>=rankRow(b); }
+
 let pending=null;
-$('#file').onchange = async e => {
-  const f=e.target.files[0]; if(!f) return; const box=$('#uInfo'); pending=null;
+async function readFile(f){
+  await loadLib();
+  const wb=XLSX.read(await f.arrayBuffer(),{type:'array',raw:true});
+  return parseSheet(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:true,defval:''}));
+}
+async function handleFiles(list){
+  const files=[...list].filter(f=>/\.(xlsx|xls|csv)$/i.test(f.name)); const box=$('#uInfo'); pending=null;
+  if(!files.length){ box.innerHTML='<div class="card err" style="margin-top:12px">Pilih file .xlsx, .xls, atau .csv.</div>'; return; }
   box.innerHTML='<div class="card" style="margin-top:12px">Membaca file…</div>';
   try{
-    await loadLib();
-    const wb=XLSX.read(await f.arrayBuffer(),{type:'array',raw:true});
-    const rows=parseSheet(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:true,defval:''}));
-    if(!rows.length) throw new Error('Tidak ada pesanan di file ini.');
-    const n={}; rows.forEach(o=>{ const k=derive(o); n[k]=(n[k]||0)+1; });
-    pending={file:f.name,rows:rows.map(o=>OUT.map(k=>o[k]||''))};
-    box.innerHTML=`<div class="card" style="margin-top:12px"><b>${esc(f.name)}</b><div class="count" style="margin:2px 0 0">${nf(rows.length)} pesanan</div>
-      <div class="res" style="grid-template-columns:repeat(3,1fr)">${ORDER.filter(k=>n[k]).map(k=>`<div><b class="num" style="color:${ST[k].c}">${nf(n[k])}</b><span>${ST[k].t}</span></div>`).join('')}</div>
-      <button class="btn" id="btnSend">Simpan ke laporan</button><div class="count" style="text-align:center">Pesanan dengan Order ID sama akan diperbarui.</div></div>`;
+    const by=new Map(), info=[];
+    for(const f of files){
+      const rows=await readFile(f); if(!rows.length) throw new Error('Tidak ada pesanan di '+f.name+'.');
+      info.push([f.name,rows.length]);
+      for(const o of rows){ const r=OUT.map(k=>o[k]||''); const p=by.get(r[0]); if(!p||newer(r,p)) by.set(r[0],r); }
+    }
+    const all=[...by.values()], n={}; all.forEach(r=>{ const k=derive({status:r[1],substatus:r[2],ctype:r[3]}); n[k]=(n[k]||0)+1; });
+    pending={file:files.map(f=>f.name).join(', '),rows:all};
+    box.innerHTML=`<div class="card" style="margin-top:12px"><b>${nf(all.length)} pesanan</b>
+      <ul class="files">${info.map(([a,c])=>`<li><span>${esc(a)}</span><span class="num">${nf(c)}</span></li>`).join('')}</ul>
+      <div class="res">${ORDER.filter(k=>n[k]).map(k=>`<div><b class="num" style="color:${ST[k].c}">${nf(n[k])}</b><span>${ST[k].t}</span></div>`).join('')}</div>
+      <button class="btn" id="btnSend">Simpan ke laporan</button><div class="count" style="text-align:center">Order ID yang sudah ada diperbarui hanya jika datanya lebih baru.</div></div>`;
     $('#btnSend').onclick=send;
   }catch(x){ box.innerHTML=`<div class="card err" style="margin-top:12px">${esc(x.message)}</div>`; }
-  e.target.value='';
-};
+}
+$('#file').onchange = e => { handleFiles(e.target.files); e.target.value=''; };
+const dz=$('#drop');
+['dragenter','dragover'].forEach(t=>dz.addEventListener(t,e=>{ e.preventDefault(); dz.classList.add('over'); }));
+['dragleave','drop'].forEach(t=>dz.addEventListener(t,e=>{ e.preventDefault(); dz.classList.remove('over'); }));
+dz.addEventListener('drop',e=>{ if(e.dataTransfer&&e.dataTransfer.files.length) handleFiles(e.dataTransfer.files); });
+// cegah browser membuka file bila terlepas di luar kotak
+['dragover','drop'].forEach(t=>window.addEventListener(t,e=>{ if(e.target.closest&&e.target.closest('#drop')) return; e.preventDefault(); }));
 async function send(){
   const b=$('#btnSend'); b.disabled=true; b.textContent='Menyimpan…';
+  const CH=8000, parts=Math.ceil(pending.rows.length/CH), tot={baru:0,diperbarui:0,sama:0,dilewati:0};
   try{
-    const j=await api({a:'upload',t:S.token,file:pending.file,rows:pending.rows});
-    if(!j.ok) throw new Error(j.err||'gagal');
-    $('#uInfo').innerHTML=`<div class="card ok" style="margin-top:12px"><b>✓ Tersimpan</b><div class="res"><div><b class="num">${nf(j.baru)}</b><span>Baru</span></div><div><b class="num">${nf(j.diperbarui)}</b><span>Diperbarui</span></div><div><b class="num">${nf(j.sama)}</b><span>Tanpa perubahan</span></div></div></div>`;
+    for(let i=0;i<parts;i++){
+      if(parts>1) b.textContent='Menyimpan '+(i+1)+'/'+parts+'…';
+      const j=await api({a:'upload',t:S.token,file:pending.file+(parts>1?' ('+(i+1)+'/'+parts+')':''),rows:pending.rows.slice(i*CH,(i+1)*CH)});
+      if(!j.ok) throw new Error(j.err||'gagal');
+      for(const k in tot) tot[k]+=j[k]||0;
+    }
+    $('#uInfo').innerHTML=`<div class="card ok" style="margin-top:12px"><b>✓ Tersimpan</b><div class="res"><div><b class="num">${nf(tot.baru)}</b><span>Baru</span></div><div><b class="num">${nf(tot.diperbarui)}</b><span>Diperbarui</span></div><div><b class="num">${nf(tot.sama)}</b><span>Tanpa perubahan</span></div>${tot.dilewati?`<div><b class="num">${nf(tot.dilewati)}</b><span>Lebih lama, dilewati</span></div>`:''}</div></div>`;
     pending=null; S.ver=''; await refresh(); loadHist();
   }catch(x){ if(x.message!=='auth'){ b.disabled=false; b.textContent='Coba lagi'; toast('Gagal menyimpan: '+x.message); } }
 }
