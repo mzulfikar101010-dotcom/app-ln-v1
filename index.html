@@ -243,6 +243,7 @@ button.hero{width:100%;text-align:left;display:block}
     <section class="page" id="p-upload">
       <label class="drop" id="drop"><input type="file" id="file" accept=".xlsx,.xls,.csv" multiple><b>Tarik file ke sini</b>atau ketuk untuk memilih · .xlsx dari TikTok Shop</label>
       <div id="uInfo"></div>
+      <div id="uUndo"></div>
       <h2>Riwayat unggah</h2>
       <div class="card" style="padding:6px 16px"><table><tbody id="uHist"><tr><td style="text-align:left;color:var(--mute)">Memuat…</td></tr></tbody></table></div>
       <button class="btn ghost" id="btnReset" style="margin-top:20px;color:var(--retur)">Hapus semua data</button>
@@ -623,15 +624,15 @@ dz.addEventListener('drop',e=>{ if(e.dataTransfer&&e.dataTransfer.files.length) 
 ['dragover','drop'].forEach(t=>window.addEventListener(t,e=>{ if(e.target.closest&&e.target.closest('#drop')) return; e.preventDefault(); }));
 async function send(){
   const b=$('#btnSend'); b.disabled=true; b.textContent='Menyimpan…';
-  const CH=8000, parts=Math.ceil(pending.rows.length/CH), tot={baru:0,diperbarui:0,sama:0,dilewati:0,dibagi:0};
+  const batch=String(Date.now()), CH=8000, parts=Math.ceil(pending.rows.length/CH), tot={baru:0,diperbarui:0,sama:0,dilewati:0,dibagi:0,abaikan:0};
   try{
     for(let i=0;i<parts;i++){
       if(parts>1) b.textContent='Menyimpan '+(i+1)+'/'+parts+'…';
-      const j=await api({a:'upload',t:S.token,file:pending.file+(parts>1?' ('+(i+1)+'/'+parts+')':''),rows:pending.rows.slice(i*CH,(i+1)*CH)});
+      const j=await api({a:'upload',t:S.token,file:pending.file,part:i+1,parts,batch,rows:pending.rows.slice(i*CH,(i+1)*CH)});
       if(!j.ok) throw new Error(j.err||'gagal');
       for(const k in tot) tot[k]+=j[k]||0;
     }
-    $('#uInfo').innerHTML=`<div class="card ok" style="margin-top:12px"><b>✓ Tersimpan</b><div class="res"><div><b class="num">${nf(tot.baru)}</b><span>Baru</span></div><div><b class="num">${nf(tot.diperbarui)}</b><span>Diperbarui</span></div><div><b class="num">${nf(tot.sama)}</b><span>Tanpa perubahan</span></div>${tot.dilewati?`<div><b class="num">${nf(tot.dilewati)}</b><span>Lebih lama, dilewati</span></div>`:''}${tot.dibagi?`<div><b class="num">${nf(tot.dibagi)}</b><span>Selesai baru dibagi</span></div>`:''}</div></div>`;
+    $('#uInfo').innerHTML=`<div class="card ok" style="margin-top:12px"><b>✓ Tersimpan</b><div class="res"><div><b class="num">${nf(tot.baru)}</b><span>Baru</span></div><div><b class="num">${nf(tot.diperbarui)}</b><span>Diperbarui</span></div><div><b class="num">${nf(tot.sama)}</b><span>Tanpa perubahan</span></div>${tot.dilewati?`<div><b class="num">${nf(tot.dilewati)}</b><span>Lebih lama, dilewati</span></div>`:''}${tot.dibagi?`<div><b class="num">${nf(tot.dibagi)}</b><span>Selesai baru dibagi</span></div>`:''}${tot.abaikan?`<div><b class="num">${nf(tot.abaikan)}</b><span>Produk tidak dihitung</span></div>`:''}</div></div>`;
     pending=null; S.ver=''; await refresh(); loadHist();
   }catch(x){ if(x.message!=='auth'){ b.disabled=false; b.textContent='Coba lagi'; toast('Gagal menyimpan: '+x.message); } }
 }
@@ -647,7 +648,18 @@ $('#btnReset').onclick = async () => {
 async function loadHist(){
   try{
     const j=await api({a:'riwayat',t:S.token});
-    $('#uHist').innerHTML = (j.rows||[]).map(r=>`<tr><td style="text-align:left"><div>${esc(r[0])}</div><div style="color:var(--mute);font-size:12.5px;font-weight:400;overflow:hidden;text-overflow:ellipsis;max-width:170px;white-space:nowrap">${esc(r[1])}</div></td><td class="num" style="color:var(--mute);font-size:13px">+${esc(r[3])} baru<br>${esc(r[4])} diperbarui</td></tr>`).join('') || '<tr><td style="text-align:left;color:var(--mute)">Belum ada unggahan</td></tr>';
+    $('#uHist').innerHTML = (j.rows||[]).map(r=>`<tr><td style="text-align:left"><div>${esc(r[0])}</div><div style="color:var(--mute);font-size:12.5px;font-weight:400;overflow:hidden;text-overflow:ellipsis;max-width:200px;white-space:nowrap">${esc(r[1])}</div></td><td class="num" style="color:var(--mute);font-size:13px">${String(r[1]).startsWith('↩')?'Dibatalkan':'+'+esc(r[3])+' baru<br>'+esc(r[4])+' diperbarui'}</td></tr>`).join('') || '<tr><td style="text-align:left;color:var(--mute)">Belum ada unggahan</td></tr>';
+    const u=j.undo;
+    $('#uUndo').innerHTML = u ? `<div class="card" style="margin-top:12px"><b>Unggahan terakhir</b><div class="count" style="margin:2px 0 10px;overflow:hidden;text-overflow:ellipsis">${esc(u.file)} · ${esc(u.waktu)}<br>${nf(u.baru)} baru · ${nf(u.ubah)} diperbarui</div><button class="btn ghost" id="btnUndo" style="margin-top:0;color:var(--retur)">Batalkan unggahan ini</button></div>` : '';
+    if(u) $('#btnUndo').onclick = async () => {
+      if(!confirm('Batalkan unggahan "'+u.file+'"?\n'+nf(u.baru)+' pesanan baru dihapus dan '+nf(u.ubah)+' pesanan dikembalikan ke kondisi sebelumnya.')) return;
+      const b=$('#btnUndo'); b.disabled=true; b.textContent='Membatalkan…';
+      try{
+        const r=await api({a:'undo',t:S.token});
+        if(!r.ok){ toast(r.err||'Gagal'); b.disabled=false; b.textContent='Batalkan unggahan ini'; return; }
+        $('#uInfo').innerHTML=''; toast('Unggahan dibatalkan'); S.ver=''; await refresh(); loadHist();
+      }catch(x){ if(x.message!=='auth'){ toast('Gagal membatalkan'); b.disabled=false; b.textContent='Batalkan unggahan ini'; } }
+    };
   }catch(e){}
 }
 
