@@ -129,6 +129,7 @@ td:first-child{font-weight:500}
 .drop{display:block;border:2px dashed var(--line);border-radius:var(--r);padding:32px 16px;text-align:center;color:var(--mute);cursor:pointer;background:var(--card)}
 .drop b{display:block;color:var(--ink);font-size:16px;margin-bottom:4px}
 .drop input{display:none}
+.dzs{display:grid;grid-template-columns:1fr 1fr;gap:10px}.dz{padding:26px 10px}.dz.has{border-style:solid;border-color:var(--brand)}.dz .dzs-s{display:block;font-size:13px;word-break:break-all}
 .drop.over{border-color:var(--brand);background:var(--soft);color:var(--ink)}
 .files{margin:10px 0 0;padding:0;list-style:none;font-size:13.5px;color:var(--mute)}
 .files li{display:flex;justify-content:space-between;gap:12px;padding:3px 0}
@@ -246,7 +247,10 @@ button.hero{width:100%;text-align:left;display:block}
 
     <!-- Unggah (admin) -->
     <section class="page" id="p-upload">
-      <label class="drop" id="drop"><input type="file" id="file" accept=".xlsx,.xls,.csv" multiple><b>Tarik file ke sini</b>atau ketuk untuk memilih · .xlsx dari TikTok Shop</label>
+      <div class="dzs">
+        <label class="drop dz" data-t="Nafi"><input type="file" accept=".xlsx,.xls,.csv" multiple><b>Toko Nafi</b><span class="dzs-s">Tarik file ke sini atau ketuk</span></label>
+        <label class="drop dz" data-t="Mama"><input type="file" accept=".xlsx,.xls,.csv" multiple><b>Toko Mama</b><span class="dzs-s">Tarik file ke sini atau ketuk</span></label>
+      </div>
       <div id="uInfo"></div>
       <div id="uUndo"></div>
       <h2>Riwayat unggah</h2>
@@ -459,7 +463,7 @@ function renderOrders(){
   const toks=[...new Set(S.orders.map(o=>o.toko).filter(Boolean))].sort();
   if(S.tk && !toks.includes(S.tk)) S.tk='';
   $('#tk').classList.toggle('hide',S.role!=='admin');
-  $('#tk').innerHTML='<button data-t="">Semua toko</button>'+(toks.length?'':'<button disabled style="flex:3;font-weight:400">Unggah file Mama_… / Nafi_… dulu</button>')+toks.map(t=>`<button data-t="${esc(t)}">${esc(t)}</button>`).join('');
+  $('#tk').innerHTML='<button data-t="">Semua toko</button>'+(toks.length?'':'<button disabled style="flex:3;font-weight:400">Unggah lewat kotak Toko Nafi / Toko Mama dulu</button>')+toks.map(t=>`<button data-t="${esc(t)}">${esc(t)}</button>`).join('');
   $('#tk').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.t===S.tk));
   $('#own').classList.toggle('hide',S.role!=='admin');
   $('#own').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.o===S.own));
@@ -613,40 +617,44 @@ function stamp(r){ let m=''; for(let i=4;i<=9;i++) if(r[i]>m) m=r[i]; return m; 
 function rankRow(r){ return RANK[derive({status:r[1],substatus:r[2],ctype:r[3]})]; }
 function newer(a,b){ const sa=stamp(a), sb=stamp(b); if(sa!==sb) return sa>sb; return rankRow(a)>=rankRow(b); }
 
-function tokoOf(name){ const b=String(name).replace(/\.[^.]+$/,''); const m=b.match(/^\s*(.+?)[_\s]+Semua[_\s-]*pesanan/i)||b.match(/^\s*([^_]+)_/); if(!m) return ''; const t=m[1].trim(); if(/^(semua|all|orders?|pesanan)$/i.test(t)) return ''; return t? t.charAt(0).toUpperCase()+t.slice(1).toLowerCase() : ''; }
 let pending=null;
 async function readFile(f){
   await loadLib();
   const wb=XLSX.read(await f.arrayBuffer(),{type:'array',raw:true});
   return parseSheet(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:true,defval:''}));
 }
-async function handleFiles(list){
+const Z={Nafi:[],Mama:[]}, parsed=new WeakMap();
+async function handleFiles(list,toko){
   const files=[...list].filter(f=>/\.(xlsx|xls|csv)$/i.test(f.name)); const box=$('#uInfo'); pending=null;
   if(!files.length){ box.innerHTML='<div class="card err" style="margin-top:12px">Pilih file .xlsx, .xls, atau .csv.</div>'; return; }
+  Z[toko]=files;
+  document.querySelectorAll('.dz').forEach(d=>{ const f=Z[d.dataset.t]; d.classList.toggle('has',!!f.length); d.querySelector('.dzs-s').textContent=f.length?f.map(x=>x.name).join(', '):'Tarik file ke sini atau ketuk'; });
   box.innerHTML='<div class="card" style="margin-top:12px">Membaca file…</div>';
   try{
     const by=new Map(), info=[];
-    for(const f of files){
-      const rows=await readFile(f); if(!rows.length) throw new Error('Tidak ada pesanan di '+f.name+'.');
-      const tk=tokoOf(f.name); info.push([f.name,rows.length,tk]);
+    for(const tk of Object.keys(Z)) for(const f of Z[tk]){
+      let rows=parsed.get(f); if(!rows){ rows=await readFile(f); parsed.set(f,rows); }
+      if(!rows.length) throw new Error('Tidak ada pesanan di '+f.name+'.');
+      info.push([f.name,rows.length,tk]);
       for(const o of rows){ const r=OUT.map(k=>o[k]||''); r.push(tk); const p=by.get(r[0]); if(!p||newer(r,p)) by.set(r[0],r); }
     }
     const all=[...by.values()], n={}; all.forEach(r=>{ const k=derive({status:r[1],substatus:r[2],ctype:r[3]}); n[k]=(n[k]||0)+1; });
-    pending={file:files.map(f=>f.name).join(', '),rows:all};
+    pending={file:info.map(i=>i[2]+': '+i[0]).join(', '),rows:all};
     box.innerHTML=`<div class="card" style="margin-top:12px"><b>${nf(all.length)} pesanan</b>
-      <ul class="files">${info.map(([a,c,t])=>`<li><span>${esc(a)}<br><small style="color:${t?'var(--brand)':'var(--mute)'}">${t?'Toko '+esc(t):'Toko tidak terbaca dari nama file'}</small></span><span class="num">${nf(c)}</span></li>`).join('')}</ul>
+      <ul class="files">${info.map(([a,c,t])=>`<li><span>${esc(a)}<br><small style="color:var(--brand)">Toko ${esc(t)}</small></span><span class="num">${nf(c)}</span></li>`).join('')}</ul>
       <div class="res">${ORDER.filter(k=>n[k]).map(k=>`<div><b class="num" style="color:${ST[k].c}">${nf(n[k])}</b><span>${ST[k].t}</span></div>`).join('')}</div>
       <button class="btn" id="btnSend">Simpan ke laporan</button><div class="count" style="text-align:center">Order ID yang sudah ada diperbarui hanya jika datanya lebih baru.</div></div>`;
     $('#btnSend').onclick=send;
   }catch(x){ box.innerHTML=`<div class="card err" style="margin-top:12px">${esc(x.message)}</div>`; }
 }
-$('#file').onchange = e => { handleFiles(e.target.files); e.target.value=''; };
-const dz=$('#drop');
-['dragenter','dragover'].forEach(t=>dz.addEventListener(t,e=>{ e.preventDefault(); dz.classList.add('over'); }));
-['dragleave','drop'].forEach(t=>dz.addEventListener(t,e=>{ e.preventDefault(); dz.classList.remove('over'); }));
-dz.addEventListener('drop',e=>{ if(e.dataTransfer&&e.dataTransfer.files.length) handleFiles(e.dataTransfer.files); });
+document.querySelectorAll('.dz').forEach(dz=>{
+  dz.querySelector('input').onchange = e => { handleFiles(e.target.files,dz.dataset.t); e.target.value=''; };
+  ['dragenter','dragover'].forEach(t=>dz.addEventListener(t,e=>{ e.preventDefault(); dz.classList.add('over'); }));
+  ['dragleave','drop'].forEach(t=>dz.addEventListener(t,e=>{ e.preventDefault(); dz.classList.remove('over'); }));
+  dz.addEventListener('drop',e=>{ if(e.dataTransfer&&e.dataTransfer.files.length) handleFiles(e.dataTransfer.files,dz.dataset.t); });
+});
 // cegah browser membuka file bila terlepas di luar kotak
-['dragover','drop'].forEach(t=>window.addEventListener(t,e=>{ if(e.target.closest&&e.target.closest('#drop')) return; e.preventDefault(); }));
+['dragover','drop'].forEach(t=>window.addEventListener(t,e=>{ if(e.target.closest&&e.target.closest('.dz')) return; e.preventDefault(); }));
 async function send(){
   const b=$('#btnSend'); b.disabled=true; b.textContent='Menyimpan…';
   const batch=String(Date.now()), CH=8000, parts=Math.ceil(pending.rows.length/CH), tot={baru:0,diperbarui:0,sama:0,dilewati:0,dibagi:0,abaikan:0,ditandai:0};
@@ -658,7 +666,7 @@ async function send(){
       for(const k in tot) tot[k]+=j[k]||0;
     }
     $('#uInfo').innerHTML=`<div class="card ok" style="margin-top:12px"><b>✓ Tersimpan</b><div class="res"><div><b class="num">${nf(tot.baru)}</b><span>Baru</span></div><div><b class="num">${nf(tot.diperbarui)}</b><span>Diperbarui</span></div><div><b class="num">${nf(tot.sama)}</b><span>Tanpa perubahan</span></div>${tot.dilewati?`<div><b class="num">${nf(tot.dilewati)}</b><span>Lebih lama, dilewati</span></div>`:''}${tot.dibagi?`<div><b class="num">${nf(tot.dibagi)}</b><span>Selesai baru dibagi</span></div>`:''}${tot.ditandai?`<div><b class="num">${nf(tot.ditandai)}</b><span>Toko ditandai</span></div>`:''}${tot.abaikan?`<div><b class="num">${nf(tot.abaikan)}</b><span>Produk tidak dihitung</span></div>`:''}</div></div>`;
-    pending=null; S.ver=''; await refresh(); loadHist();
+    pending=null; Z.Nafi=[]; Z.Mama=[]; document.querySelectorAll('.dz').forEach(d=>{ d.classList.remove('has'); d.querySelector('.dzs-s').textContent='Tarik file ke sini atau ketuk'; }); S.ver=''; await refresh(); loadHist();
   }catch(x){ if(x.message!=='auth'){ b.disabled=false; b.textContent='Coba lagi'; toast('Gagal menyimpan: '+x.message); } }
 }
 $('#btnReset').onclick = async () => {
