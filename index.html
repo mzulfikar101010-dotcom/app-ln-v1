@@ -219,7 +219,6 @@ button.hero{width:100%;text-align:left;display:block}
       <div class="sticky">
         <div class="search"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><input id="q" type="search" placeholder="Cari Order ID atau produk" inputmode="search" autocomplete="off"></div>
         <button class="dr" id="drd" type="button" data-k="d"><span class="k">Dibuat</span><span class="v ph" data-v>Semua tanggal</span><span class="x hide" data-x role="button" aria-label="Hapus filter tanggal">✕</span><svg class="di" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></button>
-        <button class="dr" id="dre" type="button" data-k="e"><span class="k">Selesai</span><span class="v ph" data-v>Semua tanggal</span><span class="x hide" data-x role="button" aria-label="Hapus filter tanggal">✕</span><svg class="di" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></button>
         <div class="seg own hide" id="tk"></div>
         <div class="seg own hide" id="own"><button data-o="">Semua</button><button data-o="lendy">Mas Lendy</button><button data-o="husein">Mas Husein</button></div>
         <div class="chips" id="chips"></div>
@@ -331,7 +330,7 @@ async function api(body){
 }
 
 /* ═════ State ═════ */
-const S = { token:ls.get('tk')||'', role:ls.get('rl')||'', ver:'', orders:[], tab:'home', f:'all', q:'', n:{}, shown:60, wd:[], d1:'', d2:'', e1:'', e2:'', own:'', tk:'', inv:'lendy', sync:'' };
+const S = { token:ls.get('tk')||'', role:ls.get('rl')||'', ver:'', orders:[], tab:'home', f:'all', q:'', n:{}, shown:60, wd:[], d1:'', d2:'', own:'', tk:'', inv:'lendy', sync:'' };
 
 function build(cols, rows){
   const ix = {}; cols.forEach((c,i)=>ix[c]=i);
@@ -427,7 +426,7 @@ function renderHome(){
   $('#hBar').innerHTML = tot ? ORDER.filter(k=>n[k]).map(k=>`<i style="flex:${n[k]};background:${ST[k].c}"></i>`).join('') : '';
   const show = ORDER.filter(k=>k!=='selesai' && (k!=='unpaid'||n.unpaid));
   $('#hTiles').innerHTML = show.map(k=>`<button class="tile" data-f="${k}"><div class="t"><span class="dot" style="background:${ST[k].c}"></span>${ST[k].t}</div><div class="n num">${nf(n[k]||0)}</div><div class="d">${ST[k].d}</div></button>`).join('');
-  const jump = e => { const b=e.target.closest('[data-f]'); if(b){ S.f=b.dataset.f; S.d1=S.d2=S.e1=S.e2=''; S.own=''; S.tk=''; S.shown=60; go('orders'); } };
+  const jump = e => { const b=e.target.closest('[data-f]'); if(b){ S.f=b.dataset.f; S.d1=S.d2=''; S.own=''; S.tk=''; S.shown=60; go('orders'); } };
   $('#hTiles').onclick = jump;
   const w={}; S.orders.forEach(o=>{ if(!o.wk) return; const x=w[o.wk]||(w[o.wk]={n:0,s:0}); x.n++; if(o.st==='selesai') x.s++; });
   $('#hWeeks').innerHTML = Object.keys(w).sort().reverse().map(k=>`<tr><td>${weekLabel(k)}</td><td class="num">${nf(w[k].n)}</td><td class="num">${nf(w[k].s)}</td></tr>`).join('') || '<tr><td colspan="3" style="text-align:center;color:var(--mute)">Belum ada data</td></tr>';
@@ -437,7 +436,6 @@ function renderHome(){
 /* ═════ Pesanan ═════ */
 function dateOk(o){
   if(S.d1){ const c=o.created.slice(0,10); if(c<S.d1||c>(S.d2||S.d1)) return false; }
-  if(S.e1){ if(o.st!=='selesai'||!o.delivered) return false; const c=o.delivered.slice(0,10); if(c<S.e1||c>(S.e2||S.e1)) return false; }
   if(S.own && o.owner!==S.own) return false;
   if(S.tk && o.toko!==S.tk) return false;
   return true;
@@ -457,7 +455,7 @@ function rowHtml(o){
 }
 function renderOrders(){
   const base=S.orders.filter(dateOk), cn={}; ORDER.forEach(k=>cn[k]=0); base.forEach(o=>cn[o.st]++);
-  ['d','e'].forEach(k=>{ const B=$('#dr'+k), v=S[k+'1'], w=S[k+'2'];
+  ['d'].forEach(k=>{ const B=$('#dr'+k), v=S[k+'1'], w=S[k+'2'];
     B.querySelector('[data-v]').textContent = v ? fmtD(v)+(w&&w!==v?' – '+fmtD(w):'') : 'Semua tanggal';
     B.querySelector('[data-v]').classList.toggle('ph',!v); B.classList.toggle('on',!!v); B.querySelector('[data-x]').classList.toggle('hide',!v); B.querySelector('.di').classList.toggle('hide',!!v); });
   const toks=[...new Set(S.orders.map(o=>o.toko).filter(Boolean))].sort();
@@ -485,7 +483,7 @@ const BLNF=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','
 const p2=n=>String(n).padStart(2,'0');
 const fmtD=s=>s.slice(8,10)+'/'+s.slice(5,7)+'/'+s.slice(0,4);
 let cal=null;
-const NMF={d:'Tanggal dibuat',e:'Tanggal selesai'};
+const NMF={d:'Tanggal dibuat'};
 function todayStr(){ const d=new Date(); return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate()); }
 function openCal(k){
   const ref=S[k+'1']||todayStr(); cal={k:k,a:null,y:+ref.slice(0,4),m:+ref.slice(5,7)-1,hv:''};
@@ -541,7 +539,7 @@ function openSheet(id){
 }
 function closeSheet(){
   $('#sheet').classList.remove('on'); $('#ov').classList.remove('on');
-  if(cal){ if(cal.a) S[cal.k+'2']=S[cal.k+'1']; if(cal.k==='e'&&S.e1&&S.f==='all') S.f='selesai'; cal=null; S.shown=60; renderOrders(); }
+  if(cal){ if(cal.a) S[cal.k+'2']=S[cal.k+'1']; cal=null; S.shown=60; renderOrders(); }
 }
 $('#ov').onclick = closeSheet; document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeSheet(); });
 
