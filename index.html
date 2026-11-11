@@ -130,6 +130,15 @@ td:first-child{font-weight:500}
 .drop b{display:block;color:var(--ink);font-size:16px;margin-bottom:4px}
 .drop input{display:none}
 .dzs{display:grid;grid-template-columns:1fr 1fr;gap:10px}.dz{padding:26px 10px}.dz.has{border-style:solid;border-color:var(--brand)}.dz .dzs-s{display:block;font-size:13px;word-break:break-all}
+.dz.wide{grid-column:1/-1;padding:18px 10px}
+.plat{margin-bottom:10px}.plat button{height:38px}
+.sw{width:44px;height:26px;border-radius:13px;background:var(--line);position:relative;flex:none;transition:.15s}
+.sw::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.15s}
+.sw.on{background:var(--retur)}.sw.on::after{left:21px}
+.pr{display:flex;gap:12px;align-items:center;padding:11px 0;border-bottom:1px solid var(--line);width:100%;text-align:left}
+.pr .t{flex:1;min-width:0;font-size:14px;word-break:break-word}.pr .t small{display:block;color:var(--mute);font-size:12.5px;margin-top:2px}
+.pr.off .t{color:var(--mute)}
+#pList{max-height:52vh;overflow:auto;margin-top:8px}
 .drop.over{border-color:var(--brand);background:var(--soft);color:var(--ink)}
 .files{margin:10px 0 0;padding:0;list-style:none;font-size:13.5px;color:var(--mute)}
 .files li{display:flex;justify-content:space-between;gap:12px;padding:3px 0}
@@ -203,6 +212,7 @@ button.hero{width:100%;text-align:left;display:block}
     <section class="page on" id="p-home">
       <div id="iosHint" class="hint hide"><span>Pasang di iPhone: ketuk <b>Bagikan</b> lalu <b>Tambah ke Layar Utama</b>.</span><button id="iosX" aria-label="Tutup">✕</button></div>
       <div id="hHeroes"></div>
+      <div class="seg plat" id="platH"><button data-p="tiktok">TikTok</button><button data-p="shopee">Shopee</button></div>
       <div class="bar" id="hBar"></div>
       <div class="tiles" id="hTiles"></div>
       <h2>Per minggu</h2>
@@ -217,6 +227,7 @@ button.hero{width:100%;text-align:left;display:block}
     <!-- Pesanan -->
     <section class="page" id="p-orders">
       <div class="sticky">
+        <div class="seg plat" id="platO"><button data-p="tiktok">TikTok</button><button data-p="shopee">Shopee</button></div>
         <div class="search"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><input id="q" type="search" placeholder="Cari Order ID atau produk" inputmode="search" autocomplete="off"></div>
         <button class="dr" id="drd" type="button" data-k="d"><span class="k">Dibuat</span><span class="v ph" data-v>Semua tanggal</span><span class="x hide" data-x role="button" aria-label="Hapus filter tanggal">✕</span><svg class="di" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></button>
         <div class="seg own hide" id="tk"></div>
@@ -249,9 +260,11 @@ button.hero{width:100%;text-align:left;display:block}
       <div class="dzs">
         <label class="drop dz" data-t="Nafi"><input type="file" accept=".xlsx,.xls,.csv" multiple><b>Toko Nafi</b><span class="dzs-s">Tarik file ke sini atau ketuk</span></label>
         <label class="drop dz" data-t="Mama"><input type="file" accept=".xlsx,.xls,.csv" multiple><b>Toko Mama</b><span class="dzs-s">Tarik file ke sini atau ketuk</span></label>
+        <label class="drop dz wide" data-t="Shopee"><input type="file" accept=".xlsx,.xls,.csv" multiple><b>Toko Shopee</b><span class="dzs-s">Tarik file ke sini atau ketuk</span></label>
       </div>
       <div id="uInfo"></div>
       <div id="uUndo"></div>
+      <button class="btn ghost" id="btnProd" style="margin-top:14px">Produk tidak dihitung</button>
       <h2>Riwayat unggah</h2>
       <div class="card" style="padding:6px 16px"><table><tbody id="uHist"><tr><td style="text-align:left;color:var(--mute)">Memuat…</td></tr></tbody></table></div>
       <button class="btn ghost" id="btnReset" style="margin-top:20px;color:var(--retur)">Hapus semua data</button>
@@ -330,17 +343,25 @@ async function api(body){
 }
 
 /* ═════ State ═════ */
-const S = { token:ls.get('tk')||'', role:ls.get('rl')||'', ver:'', orders:[], tab:'home', f:'all', q:'', n:{}, shown:60, wd:[], d1:'', d2:'', own:'', tk:'', inv:'lendy', sync:'' };
+const S = { token:ls.get('tk')||'', role:ls.get('rl')||'', ver:'', all:[], plat:ls.get('pl')==='shopee'?'shopee':'tiktok', orders:[], tab:'home', f:'all', q:'', n:{}, shown:60, wd:[], d1:'', d2:'', own:'', tk:'', inv:'lendy', sync:'' };
 
 function build(cols, rows){
   const ix = {}; cols.forEach((c,i)=>ix[c]=i);
-  S.orders = rows.map(r=>{
+  S.all = rows.map(r=>{
     const o={}; for(const c of cols) o[c]=r[ix[c]]||'';
     o.st = derive(o); o.wk = weekStart(o.created); o.hay = (o.id+' '+o.product+' '+o.courier).toLowerCase();
+    o.plat = o.toko==='Shopee' ? 'shopee' : 'tiktok';
     return o;
   }).sort((a,b)=> b.created.localeCompare(a.created));
-  S.n = {}; ORDER.forEach(k=>S.n[k]=0); S.orders.forEach(o=>S.n[o.st]++);
+  applyPlat();
 }
+function applyPlat(){
+  S.orders = S.all.filter(o=>o.plat===S.plat);
+  S.n = {}; ORDER.forEach(k=>S.n[k]=0); S.orders.forEach(o=>S.n[o.st]++);
+  document.querySelectorAll('.plat button').forEach(b=>b.classList.toggle('on',b.dataset.p===S.plat));
+}
+function setPlat(p){ if(p===S.plat) return; S.plat=p; ls.set('pl',p); S.f='all'; S.d1=S.d2=''; S.own=''; S.tk=''; S.shown=60; applyPlat(); renderAll(); }
+document.querySelectorAll('.plat').forEach(el=>el.onclick=e=>{ const b=e.target.closest('button'); if(b) setPlat(b.dataset.p); });
 
 /* ═════ Login ═════ */
 function showLogin(){
@@ -360,7 +381,7 @@ $('#lgForm').onsubmit = async e => {
   btn.disabled=false; btn.textContent='Masuk'; $('#lgPass').value='';
 };
 function logout(silent){
-  ls.del('tk'); ls.del('rl'); idb.del('data'); idb.del('wd'); S.wd=[]; S.token=''; S.role=''; S.ver=''; S.orders=[];
+  ls.del('tk'); ls.del('rl'); idb.del('data'); idb.del('wd'); S.wd=[]; S.token=''; S.role=''; S.ver=''; S.orders=[]; S.all=[];
   showLogin(); if(silent) $('#lgErr').textContent='Sesi berakhir. Masukkan sandi lagi.';
 }
 $('#btnOut').onclick = () => { if(confirm('Keluar dari perangkat ini?')) logout(); };
@@ -450,7 +471,7 @@ function matches(o){
 }
 function rowHtml(o){
   const s=ST[o.st];
-  const m = `<span>Dibuat ${dShort(o.created)}</span>${o.st==='batal'?`<span>Batal ${dShort(o.cancelled)}</span>`:o.delivered?`<span>Sampai ${dShort(o.delivered)}</span>`:o.shipped?`<span>Dikirim ${dShort(o.shipped)}</span>`:''}`;
+  const m = `<span>Dibuat ${dShort(o.created)}</span>${o.st==='batal'?(o.cancelled?`<span>Batal ${dShort(o.cancelled)}</span>`:''):o.delivered?`<span>Sampai ${dShort(o.delivered)}</span>`:o.shipped?`<span>Dikirim ${dShort(o.shipped)}</span>`:''}`;
   return `<button class="row" data-id="${o.id}"><div class="a"><span class="id num">${o.id}</span><span class="badge" style="--c:${s.c}">${s.t}</span></div><div class="p">${esc(o.product)}${o.qty>1?' × '+esc(o.qty):''}</div><div class="m">${m}${S.role==='admin'&&o.toko?`<span>Toko ${esc(o.toko)}</span>`:''}${S.role==='admin'&&o.owner?`<span>${o.owner==='x'?'Tidak dihitung':'Milik '+(NAMA_INV[o.owner]||o.owner)}</span>`:''}</div></button>`;
 }
 function renderOrders(){
@@ -460,7 +481,7 @@ function renderOrders(){
     B.querySelector('[data-v]').classList.toggle('ph',!v); B.classList.toggle('on',!!v); B.querySelector('[data-x]').classList.toggle('hide',!v); B.querySelector('.di').classList.toggle('hide',!!v); });
   const toks=[...new Set(S.orders.map(o=>o.toko).filter(Boolean))].sort();
   if(S.tk && !toks.includes(S.tk)) S.tk='';
-  $('#tk').classList.toggle('hide',S.role!=='admin');
+  $('#tk').classList.toggle('hide',S.role!=='admin'||S.plat!=='tiktok');
   $('#tk').innerHTML='<button data-t="">Semua toko</button>'+(toks.length?'':'<button disabled style="flex:3;font-weight:400">Unggah lewat kotak Toko Nafi / Toko Mama dulu</button>')+toks.map(t=>`<button data-t="${esc(t)}">${esc(t)}</button>`).join('');
   $('#tk').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.t===S.tk));
   $('#own').classList.toggle('hide',S.role!=='admin');
@@ -531,7 +552,7 @@ function openSheet(id){
   let tl = steps.map(([k,v])=>`<li><div class="k">${k}</div><div class="w">${dLong(v)}</div></li>`).join('');
   if(o.st==='selesai') tl+=`<li style="--c:var(--selesai)"><div class="k">Selesai</div><div class="w">Paket diterima pembeli</div></li>`;
   if(o.st==='retur')   tl+=`<li style="--c:var(--retur)"><div class="k">Retur</div><div class="w">Dikembalikan pembeli</div></li>`;
-  if(o.st==='batal')   tl+=`<li style="--c:var(--batal)"><div class="k">Dibatalkan</div><div class="w">${dLong(o.cancelled)}${o.cancelBy?' · oleh '+(o.cancelBy==='User'?'pembeli':o.cancelBy==='System'?'sistem':esc(o.cancelBy)):''}</div></li>`;
+  if(o.st==='batal')   tl+=`<li style="--c:var(--batal)"><div class="k">Dibatalkan</div><div class="w">${o.cancelled?dLong(o.cancelled):'Dibatalkan'}${o.cancelBy?' · oleh '+(o.cancelBy==='User'?'pembeli':o.cancelBy==='System'?'sistem':esc(String(o.cancelBy).toLowerCase())):''}</div></li>`;
   if(o.st==='unpaid')  tl+=`<li style="--c:var(--unpaid)"><div class="k">Menunggu pembayaran</div></li>`;
   const kv=(k,v)=>v?`<div class="kv"><span>${k}</span><span>${esc(v)}</span></div>`:'';
   $('#sheet').innerHTML = `<div class="grab"></div><div class="id num">${o.id}</div><div style="margin-top:8px"><span class="badge" style="--c:${s.c}">${s.t}</span></div><ul class="tl">${tl}</ul>${kv('Produk',o.product+(o.qty>1?' × '+o.qty:''))}${kv('Kurir',o.courier)}${kv('Jenis',o.type)}${kv('Alasan batal',o.cancelReason)}`;
@@ -539,13 +560,44 @@ function openSheet(id){
 }
 function closeSheet(){
   $('#sheet').classList.remove('on'); $('#ov').classList.remove('on');
+  if(prod){ const ch=prod.changed; prod=null; if(ch){ S.ver=''; refresh(); } }
   if(cal){ if(cal.a) S[cal.k+'2']=S[cal.k+'1']; cal=null; S.shown=60; renderOrders(); }
 }
 $('#ov').onclick = closeSheet; document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeSheet(); });
 
+/* ═════ Produk tidak dihitung (admin) ═════ */
+let prod=null;
+async function openProd(){
+  $('#sheet').innerHTML='<div class="grab"></div><div class="empty">Memuat…</div>'; $('#ov').classList.add('on'); requestAnimationFrame(()=>$('#sheet').classList.add('on'));
+  try{
+    const j=await api({a:'produk',t:S.token}); if(!j.ok) throw new Error(j.err||'gagal');
+    prod={rows:j.rows,q:'',changed:false}; renderProd();
+  }catch(x){ if(x.message!=='auth'){ closeSheet(); toast('Gagal memuat: '+x.message); } }
+}
+function renderProd(){
+  $('#sheet').innerHTML=`<div class="grab"></div><div class="cal-top"><b>Produk tidak dihitung</b><span id="pCnt"></span></div>
+    <div class="hint" style="margin-top:10px"><span>Pesanan berisi produk yang dinyalakan tidak dihitung komisi dan tidak tampil di aplikasi (admin maupun investor). Data tetap aman di Sheet; matikan lagi kapan saja.</span></div>
+    <div class="search" style="margin-bottom:0"><input id="pq" type="search" placeholder="Cari nama produk" autocomplete="off" style="padding-left:14px"></div><div id="pList"></div>`;
+  $('#pq').value=prod.q; drawProd();
+}
+function drawProd(){
+  const q=prod.q.trim().toLowerCase(), rows=prod.rows.filter(r=>!q||r.n.toLowerCase().includes(q));
+  $('#pCnt').textContent=nf(prod.rows.filter(r=>r.off).length)+' dimatikan · '+nf(prod.rows.length)+' produk';
+  $('#pList').innerHTML = rows.slice(0,300).map(r=>{ const i=prod.rows.indexOf(r); return `<button class="pr ${r.off?'off':''}" data-pi="${i}"><span class="t">${esc(r.n)}<small>${nf(r.c)} pesanan${r.off?' · tidak dihitung':''}</small></span><span class="sw ${r.off?'on':''}"></span></button>`; }).join('') || '<div class="empty">Tidak ada produk yang cocok.</div>';
+}
+$('#sheet').addEventListener('input',e=>{ if(prod&&e.target.id==='pq'){ prod.q=e.target.value; drawProd(); } });
+$('#sheet').addEventListener('click',async e=>{
+  if(!prod) return; const b=e.target.closest('[data-pi]'); if(!b) return;
+  const r=prod.rows[+b.dataset.pi]; if(!r||r.busy) return; r.busy=1; r.off=r.off?0:1; drawProd();
+  try{ const j=await api({a:'produkSet',t:S.token,nama:r.n,off:r.off}); if(!j.ok) throw new Error(j.err||'gagal'); prod.changed=true; }
+  catch(x){ r.off=r.off?0:1; if(x.message!=='auth') toast('Gagal menyimpan: '+x.message); }
+  r.busy=0; if(prod) drawProd();
+});
+$('#btnProd').onclick=openProd;
+
 /* ═════ Tarik Dana ═════ */
 function wdParse(rows){ return (rows||[]).map(r=>({id:r[0],waktu:r[1],jumlah:+r[2]||0,catatan:r[3],sebelum:+r[4]||0,sesudah:+r[5]||0,batal:r[6],inv:r[7]||'lendy'})); }
-function saldoOf(inv){ const s=S.orders.filter(o=>o.owner===inv&&o.st==='selesai').length, t=S.wd.filter(w=>!w.batal&&w.inv===inv).reduce((a,w)=>a+w.jumlah,0); return {s,t,sal:s-t}; }
+function saldoOf(inv){ const s=S.all.filter(o=>o.owner===inv&&o.st==='selesai').length, t=S.wd.filter(w=>!w.batal&&w.inv===inv).reduce((a,w)=>a+w.jumlah,0); return {s,t,sal:s-t}; }
 const curInv = () => S.role==='admin' ? S.inv : S.role;
 function renderTarik(){
   const adm=S.role==='admin', inv=curInv(), {s,t,sal}=saldoOf(inv);
@@ -615,13 +667,36 @@ function stamp(r){ let m=''; for(let i=4;i<=9;i++) if(r[i]>m) m=r[i]; return m; 
 function rankRow(r){ return RANK[derive({status:r[1],substatus:r[2],ctype:r[3]})]; }
 function newer(a,b){ const sa=stamp(a), sb=stamp(b); if(sa!==sb) return sa>sb; return rankRow(a)>=rankRow(b); }
 
+function parseShopee(aoa){
+  const h=aoa.findIndex(r=>r.some(c=>String(c).trim()==='No. Pesanan')); if(h<0) throw new Error('Kolom "No. Pesanan" tidak ditemukan.');
+  const ix={}; aoa[h].forEach((c,i)=>ix[String(c).trim()]=i);
+  const MS={'selesai':['Selesai','Selesai'],'batal':['Dibatalkan','Dibatalkan'],'telah dikirim':['Terkirim','Terkirim'],'sedang dikirim':['Dikirim','Dalam perjalanan'],'perlu dikirim':['Perlu dikirim','Perlu dikirim'],'belum bayar':['Belum dibayar','Belum dibayar']};
+  const by=new Map();
+  for(let i=h+1;i<aoa.length;i++){
+    const r=aoa[i]; const g=k=>{ const j=ix[k]; return j===undefined?'':String(r[j]??'').trim(); };
+    const id=g('No. Pesanan'); if(!id) continue;
+    const prev=by.get(id);
+    if(prev){ const p=g('Nama Produk'); if(p && !prev.product.includes(p)) prev.product+=' + '+p; prev.qty=String((+prev.qty||0)+(+g('Jumlah')||0)); continue; }
+    const st=g('Status Pesanan'), m=MS[st.toLowerCase()]||[st,st], alasan=g('Alasan Pembatalan');
+    const ret = st.toLowerCase()!=='batal' && (g('Status Pembatalan/ Pengembalian') || +g('Returned quantity')>0);
+    by.set(id,{ id, status:m[0], substatus:m[1], ctype: st.toLowerCase()==='batal' ? 'Cancel' : ret ? 'Return/Refund' : '',
+      created:iso(r[ix['Waktu Pesanan Dibuat']]), paid:iso(r[ix['Waktu Pembayaran Dilakukan']]), rts:iso(r[ix['Waktu Pengiriman Diatur']]), shipped:'',
+      delivered:iso(r[ix['Waktu Pesanan Selesai']]), cancelled:'',
+      cancelBy: /oleh Pembeli/i.test(alasan)?'Pembeli':/oleh Penjual/i.test(alasan)?'Penjual':/sistem/i.test(alasan)?'Sistem':'',
+      cancelReason: alasan.replace(/^.*?Alasan:\s*/i,''), product:g('Nama Produk'), qty:g('Jumlah'), courier:g('Opsi Pengiriman'), type:'' });
+  }
+  return [...by.values()];
+}
 let pending=null;
 async function readFile(f){
   await loadLib();
   const wb=XLSX.read(await f.arrayBuffer(),{type:'array',raw:true});
-  return parseSheet(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:true,defval:''}));
+  const aoa=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:true,defval:''});
+  const has=n=>aoa.slice(0,30).some(r=>r.some(c=>String(c).trim()===n));
+  if(has('No. Pesanan')) return {kind:'shopee',rows:parseShopee(aoa)};
+  return {kind:'tiktok',rows:parseSheet(aoa)};
 }
-const Z={Nafi:[],Mama:[]}, parsed=new WeakMap();
+const Z={Nafi:[],Mama:[],Shopee:[]}, parsed=new WeakMap();
 async function handleFiles(list,toko){
   const files=[...list].filter(f=>/\.(xlsx|xls|csv)$/i.test(f.name)); const box=$('#uInfo'); pending=null;
   if(!files.length){ box.innerHTML='<div class="card err" style="margin-top:12px">Pilih file .xlsx, .xls, atau .csv.</div>'; return; }
@@ -631,7 +706,9 @@ async function handleFiles(list,toko){
   try{
     const by=new Map(), info=[];
     for(const tk of Object.keys(Z)) for(const f of Z[tk]){
-      let rows=parsed.get(f); if(!rows){ rows=await readFile(f); parsed.set(f,rows); }
+      let res=parsed.get(f); if(!res){ res=await readFile(f); parsed.set(f,res); }
+      const rows=res.rows, want=tk==='Shopee'?'shopee':'tiktok';
+      if(res.kind!==want){ Z[tk]=[]; document.querySelectorAll('.dz').forEach(d=>{ const g=Z[d.dataset.t]; d.classList.toggle('has',!!g.length); d.querySelector('.dzs-s').textContent=g.length?g.map(x=>x.name).join(', '):'Tarik file ke sini atau ketuk'; }); throw new Error(f.name+' adalah file '+(res.kind==='shopee'?'Shopee':'TikTok Shop')+', tapi dimasukkan ke kotak Toko '+tk+'.'); }
       if(!rows.length) throw new Error('Tidak ada pesanan di '+f.name+'.');
       info.push([f.name,rows.length,tk]);
       for(const o of rows){ const r=OUT.map(k=>o[k]||''); r.push(tk); const p=by.get(r[0]); if(!p||newer(r,p)) by.set(r[0],r); }
@@ -664,7 +741,7 @@ async function send(){
       for(const k in tot) tot[k]+=j[k]||0;
     }
     $('#uInfo').innerHTML=`<div class="card ok" style="margin-top:12px"><b>✓ Tersimpan</b><div class="res"><div><b class="num">${nf(tot.baru)}</b><span>Baru</span></div><div><b class="num">${nf(tot.diperbarui)}</b><span>Diperbarui</span></div><div><b class="num">${nf(tot.sama)}</b><span>Tanpa perubahan</span></div>${tot.dilewati?`<div><b class="num">${nf(tot.dilewati)}</b><span>Lebih lama, dilewati</span></div>`:''}${tot.dibagi?`<div><b class="num">${nf(tot.dibagi)}</b><span>Selesai baru dibagi</span></div>`:''}${tot.ditandai?`<div><b class="num">${nf(tot.ditandai)}</b><span>Toko ditandai</span></div>`:''}${tot.abaikan?`<div><b class="num">${nf(tot.abaikan)}</b><span>Produk tidak dihitung</span></div>`:''}</div></div>`;
-    pending=null; Z.Nafi=[]; Z.Mama=[]; document.querySelectorAll('.dz').forEach(d=>{ d.classList.remove('has'); d.querySelector('.dzs-s').textContent='Tarik file ke sini atau ketuk'; }); S.ver=''; await refresh(); loadHist();
+    pending=null; Z.Nafi=[]; Z.Mama=[]; Z.Shopee=[]; document.querySelectorAll('.dz').forEach(d=>{ d.classList.remove('has'); d.querySelector('.dzs-s').textContent='Tarik file ke sini atau ketuk'; }); S.ver=''; await refresh(); loadHist();
   }catch(x){ if(x.message!=='auth'){ b.disabled=false; b.textContent='Coba lagi'; toast('Gagal menyimpan: '+x.message); } }
 }
 $('#btnReset').onclick = async () => {
